@@ -6,7 +6,7 @@
  * Return: 0 on success or error on code.
  */
 
-int main()
+int main(void)
 {
 	char cmd[100], command[100], *parameters[20];
 	char *envp[] = {(char *) "PATH=/bin", 0};
@@ -17,7 +17,7 @@ int main()
 		read_command(command, parameters);
 
 		if (fork() != 0)
-			wait (NULL);
+			wait(NULL);
 		else
 		{
 			strcpy(cmd, "/bin/");
@@ -25,11 +25,11 @@ int main()
 			if (execve(cmd, parameters, envp) == -1)
 				perror("Command does not exist");
 		}
-		if (strcmp(command,"exit") == 0)
+		if (strcmp(command, "exit") == 0)
 		{
 			break;
 		}
 	}
 
-	return 0;
+	return (0);
 }
