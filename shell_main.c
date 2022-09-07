@@ -1,8 +1,7 @@
 #include "shell.h"
 
 /**
- * main - main shell function.
- *
+ * main - 
  * Return: 0 on success or error on code.
  */
 
