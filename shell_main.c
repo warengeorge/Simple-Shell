@@ -1,8 +1,9 @@
 #include "shell.h"
 
 /**
+ * main - main shell function.
  *
- * Return: 0 on success, 1 on error, or error on code.
+ * Return: 0 on success or error on code.
  */
 
 int main()
@@ -32,4 +33,3 @@ int main()
 
 	return 0;
 }
-
