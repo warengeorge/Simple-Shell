@@ -12,15 +12,17 @@ int main()
 
 	while (1)
 	{
-		type_prompt();
+		prompt_user();
 		read_command(command, parameters);
+
 		if (fork() != 0)
 			wait (NULL);
 		else
 		{
 			strcpy(cmd, "/bin/");
 			strcat(cmd, command);
-			execve(cmd, parameters, envp);
+			if (execve(cmd, parameters, envp) == -1)
+				perror("Command does not exist");
 		}
 		if (strcmp(command,"exit") == 0)
 		{
