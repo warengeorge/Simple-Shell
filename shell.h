@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-void prompt_user();
+void prompt_user(void);
 void read_command(char cmd[], char *par[]);
 
 #endif

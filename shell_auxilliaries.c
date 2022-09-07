@@ -1,4 +1,10 @@
 #include "shell.h"
+/**
+ * read_command - Function prototype
+ * @cmd: Function argument to take command
+ * @par: Function argument to take command
+ * Description: Extract input from user
+ * **/
 
 void read_command(char cmd[], char *par[])
 {
@@ -9,6 +15,7 @@ void read_command(char cmd[], char *par[])
 	for (;;)
 	{
 		int c = fgetc(stdin);
+
 		line[count++] = (char) c;
 		if (c == '\n')
 			break;
@@ -23,7 +30,7 @@ void read_command(char cmd[], char *par[])
 		pch = strtok(NULL, "\n");
 	}
 	strcpy(cmd, array[0]);
-	
+
 	for (int j = 0; j < i; j++)
 		par[j] = array[j];
 	par[i] = NULL;
