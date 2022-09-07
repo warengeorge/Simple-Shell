@@ -5,10 +5,10 @@
  * Return: 0 on success or error on code.
  */
 
-int main(void)
+int main(int argc __attribute__((unused)), char *argv[])
 {
 	char cmd[100], command[100], *parameters[20];
-	char *envp[] = {(char *) "PATH=/bin", 0};
+	//char *envp[] = {(char *) "PATH=/bin", 0};
 
 	while (1)
 	{
@@ -21,8 +21,8 @@ int main(void)
 		{
 			strcpy(cmd, "/bin/");
 			strcat(cmd, command);
-			if (execve(cmd, parameters, envp) == -1)
-				perror("Command does not exist");
+			if (execve(cmd, parameters, NULL) == -1)
+				perror(argv[0]);
 		}
 		if (strcmp(command, "exit") == 0)
 		{
