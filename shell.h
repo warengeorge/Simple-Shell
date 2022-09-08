@@ -1,92 +1,51 @@
 #ifndef SHELL_H
 #define SHELL_H
-#define HSHPATH "PATH"
-#define ENVSIZE 33
-#define NUM_TOKENS 50
+
+#define NEWLINE " \t\r\n"
+#define TIME "\033[0;31m"
+#define STARTAGAIN "\e[0m"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 #include <string.h>
+#include <signal.h>
 
 extern char **environ;
 
-/**
- * struct builtins_s - struct for matching command lines with functions
- * @command: builtin command
- * @f: associated function
- */
-typedef struct builtins_s
-{
-	char *command;
-	void (*f)();
-} builtins_t;
+int prompt(void);
+char *_read(void);
+char *_fullpathbuffer(char **av, char *PATH, char *copy);
+int checkbuiltins(char **av, char *buffer, int exitstatus);
+int _forkprocess(char **av, char *buffer, char *fullpathbuffer);
 
-/**
- * struct general_s - struct for shell
- * @isInteractive: flag for interactive mode
- * @_env: environment var
- * @bufferTokens: buffer for the tokens
- * @nonInteractiveBuffer: buffer for user input in NonInteractive mode
- * @interactiveBuffer: buffer for user input in Interactive mode
- * @builtins: table of builtins
- * @nCommands: number of commands run by user
- */
-typedef struct general_s
-{
-	unsigned int isInteractive;
-	unsigned int nCommands;
-	char **_env;
-	char **bufferTokens;
-	char *nonInteractiveBuffer;
-	char *interactiveBuffer;
-	builtins_t *builtins;
-} general_t;
-
-builtins_t *initBuiltins(general_t *genHead);
-general_t *initStruct(char **env);
-char *mallocBuffer(size_t length, general_t *genHead);
-
-int interactiveShell(general_t *genHead);
-int nonInteractiveShell(char *buffer, general_t *genHead);
-char **tokenize(char *str, char delim[], general_t *genHead);
-unsigned int _strlen(const char *str);
-char *__strcat(char *dest, char *source);
-int _strcmp(char *s1, char *s2);
-void _strcpy(char *dest, char *src);
 char *_strdup(char *str);
-char *_itoa(unsigned int num);
+int _splitstring(char *str);
+int _strcmp(const char *s1, const char *s2);
+char *_strcat(char *dest, char *src);
+int _strlen(char *s);
 
-char *getUserInput(char *buffer, size_t *length, general_t *genHead);
-char **parseBuffer(char *buffer, general_t *genHead);
+char **tokenize(char *buffer);
+int _splitPATH(char *str);
+int _PATHstrcmp(const char *s1, const char *s2);
+char *_concat(char *tmp, char **av, char *tok);
 
-void printPrompt(char *prompt);
-size_t correctAbsPath(char *token);
-char *findCmd(char *b);
-int createFork(char **bufferTokens, general_t *genHead);
-char *createCWDFile(char *file);
+char *_getenv(const char *name);
+int _env(void);
+void _puts(char *str);
+int _putchar(char c);
+char *_memset(char *s, char b, unsigned int n);
 
-char *_getenv(char *name);
-void findBuiltin(general_t *vars, char *cmd);
-void runEnv(general_t *genHead);
-void runExit(general_t *genHead);
-void runSetenv(void);
-void runUnsetenv(void);
-
-void freeStruct(general_t *genHead);
-void freeEnv(general_t *genHead);
-void freeBufferTokens(general_t *genHead);
-void freeBuffer(char *buf);
-void freeBuiltins(general_t *genHead);
-
-void addMemNIBuffer(general_t *genHead, char *buf);
-void addMemIBuffer(general_t *genHead, char *buf);
-void addMemEnvBuffer(general_t *genHead, char **env);
-void addMemBuiltins(general_t *genHead, builtins_t *builtins);
-void addMemEnv(general_t *genHead, char **env);
-void addMemBufferTokens(general_t *genHead, char **tokens);
+char *getline();
+char **split_line(char *);
+unsigned int check_delim(char c, const char *str);
+int _exit(char **);
+int _execute(char **);
+char *_strtok(char *str, const char *delim);
 
 #endif
