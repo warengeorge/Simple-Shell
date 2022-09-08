@@ -41,10 +41,10 @@ void _puts(char *str);
 int _putchar(char c);
 char *_memset(char *s, char b, unsigned int n);
 
-char *getline();
+//char *getline();
 char **split_line(char *);
 unsigned int check_delim(char c, const char *str);
-int _exit(char **);
+//int _exit(char **);
 int _execute(char **);
 char *_strtok(char *str, const char *delim);
 
