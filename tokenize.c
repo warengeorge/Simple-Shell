@@ -2,7 +2,7 @@
 
 /**
  * split_line - splits a given line of strings in tokens
- * @line: the line to be split
+ * @line: the line to be split into comments
  *
  * Return: tokens
  */
