@@ -1,193 +1,158 @@
 #include "shell.h"
 
 /**
- * prompt - writes a prompt
+ * hsh - main shell loop
+ * @info: the parameter & return info struct
+ * @av: the argument vector from main()
  *
- * Return: 0 on sucess
+ * Return: 0 on success, 1 on error, or error code
  */
-int prompt(void)
+int hsh(info_t *info, char **av)
 {
-	char *prompt = "$ ";
-	ssize_t writecount = 0;
+	ssize_t r = 0;
+	int builtin_ret = 0;
 
-	if (isatty(STDIN_FILENO) == 1)
+	while (r != -1 && builtin_ret != -2)
 	{
-		writecount = write(STDOUT_FILENO, prompt, 2);
-		if (writecount == -1)
-			exit(0);
+		remove_info(info);
+		if (active(info))
+			_puts("Ogu_Majam===>$ ");
+		_eputchar(BUF_FLUSH);
+		r = get_input(info);
+		if (r != -1)
+		{
+			s_info(info, av);
+			builtin_ret = find_builtin(info);
+			if (builtin_ret == -1)
+				find_cmd(info);
+		}
+		else if (active(info))
+			_putchar('\n');
+		let_info(info, 0);
 	}
-	return (0);
-}
-
-void loop() 
-{
-	char * sting_entered;
-	char * * args;
-	int return_value = 1;
-
-	do {
-		printf("\n $");
-		string_entered = read_line();
-		flag = 0;
-		args = split_lines(string_entered);
-		return_value= dash_launch(args);
-		free(string_entered);
-		free(args);
-	} while (return_value);
+	write_history(info);
+	let_info(info, 1);
+	if (!active(info) && info->status)
+		exit(info->status);
+	if (builtin_ret == -2)
+	{
+		if (info->err_num == -1)
+			exit(info->status);
+		exit(info->err_num);
+	}
+	return (builtin_ret);
 }
 
 /**
- * _read - reads stdin and stores it in a buffer
+ * find_builtin - finds a builtin command
+ * @info: the parameter & return info struct
  *
- * Return: a pointer to the buffer
+ * Return: -1 if builtin not found,
+ *			0 if builtin executed successfully,
+ *			1 if builtin found but not successful,
+ *			-2 if builtin signals exit()
  */
-char *_read(void)
+int find_builtin(info_t *info)
 {
-	ssize_t readcount = 0;
-	size_t n = 0;
-	char *buffer = NULL;
-	int i = 0;
+	int i, built_in_ret = -1;
+	builtin_table builtintbl[] = {
+		{"exit", _myexit},
+		{"env", _env},
+		{"help", _myhelp},
+		{"history", _myhistory},
+		{"setenv", _set_env},
+		{"unsetenv", _unset_env},
+		{"cd", _mycd},
+		{"alias", _myalias},
+		{NULL, NULL}
+	};
 
-	readcount = getline(&buffer, &n, stdin);
-	if (readcount == -1)
-	{
-		free(buffer);
-		if (isatty(STDIN_FILENO) != 0)
-			write(STDOUT_FILENO, "\n", 1);
-		exit(0);
-	}
-	if (buffer[readcount - 1] == '\n' || buffer[readcount - 1] == '\t')
-		buffer[readcount - 1] = '\0';
-	for (i = 0; buffer[i]; i++)
-	{
-		if (buffer[i] == '#' && buffer[i - 1] == ' ')
+	for (i = 0; builtintbl[i].type; i++)
+		if (_strcmp(info->argv[0], builtintbl[i].type) == 0)
 		{
-			buffer[i] = '\0';
+			info->line_count++;
+			built_in_ret = builtintbl[i].func(info);
 			break;
 		}
-	}
-	return (buffer);
+	return (built_in_ret);
 }
+
 /**
- * _fullpathbuffer - finds the string to call execve on
- * @av: pointer to array of user of strings
- * @PATH: pointer to PATH string
- * @copy: pointer to copy of PATH string
+ * find_cmd - finds a command in PATH
+ * @info: the parameter & return info struct
  *
- * Return: a pointer to string to call execve on
+ * Return: void
  */
-char *_fullpathbuffer(char **av, char *PATH, char *copy)
+void find_cmd(info_t *info)
 {
-	char *tok, *fullpathbuffer = NULL, *concatstr = NULL;
-	static char tmp[256];
-	int PATHcount = 0, fullpathflag = 0, /*len = 0,*/ z = 0, toklen = 0;
-	struct stat h;
+	char *path = NULL;
+	int i, k;
 
-	copy = NULL;
-	copy = _strdup(PATH);
-	PATHcount = _splitPATH(copy);
-	tok = strtok(copy, ": =");
-	while (tok != NULL)
+	info->path = info->argv[0];
+	if (info->linecount_flag == 1)
 	{
-		concatstr = _concat(tmp, av, tok);
-		if (stat(concatstr, &h) == 0)
-		{
-			fullpathbuffer = concatstr;
-			fullpathflag = 1;
-			break;
-		}
-		if (z < PATHcount - 2)
-		{
-			toklen = _strlen(tok);
-			if (tok[toklen + 1] == ':')
-			{
-				if (stat(av[0], &h) == 0)
-				{
-					fullpathbuffer = av[0];
-					fullpathflag = 1;
-					break;
-				}
-			}
-		}
-		z++;
-		tok = strtok(NULL, ":");
+		info->line_count++;
+		info->linecount_flag = 0;
 	}
-	if (fullpathflag == 0)
-		fullpathbuffer = av[0];
-	free(copy);
-	return (fullpathbuffer);
-}
-/**
- * checkbuiltins - check if first user string is a built-in
- * @av: pointer to array of user of strings
- * @buffer: pointer to user string
- * @exitstatus: exit status of execve
- * Return: 1 if user string is equal to env or 0 otherwise
- */
-int checkbuiltins(char **av, char *buffer, int exitstatus)
-{
-	int i;
+	for (i = 0, k = 0; info->arg[i]; i++)
+		if (!_delimeter(info->arg[i], " \t\n"))
+			k++;
+	if (!k)
+		return;
 
-	if (_strcmp(av[0], "env") == 0)
+	path = find_path(info, get_env(info, "PATH="), info->argv[0]);
+	if (path)
 	{
-		_env();
-		for (i = 0; av[i]; i++)
-			free(av[i]);
-		free(av);
-		free(buffer);
-		return (1);
-	}
-	else if (_strcmp(av[0], "exit") == 0)
-	{
-		for (i = 0; av[i]; i++)
-			free(av[i]);
-		free(av);
-		free(buffer);
-		exit(exitstatus);
+		info->path = path;
+		fork_cmd(info);
 	}
 	else
-		return (0);
-}
-/**
- * _forkprocess - create child process to execute based on user input
- * @av: pointer to array of user of strings
- * @buffer: pointer to user string
- * @fullpathbuffer: pointer to user input
- *
- * Return: 0 on success
- */
-int _forkprocess(char **av, char *buffer, char *fullpathbuffer)
-{
-	int i, status, result, exitstatus = 0;
-	pid_t pid;
-
-	pid = fork();
-	if (pid == -1)
 	{
-		perror("Error");
-		exit(1);
-	}
-	if (pid == 0)
-	{
-		result = execve(fullpathbuffer, av, environ);
-		if (result == -1)
+		if ((active(info) || get_env(info, "PATH=")
+			|| info->argv[0][0] == '/') && is_cmd(info, info->argv[0]))
+			fork_cmd(info);
+		else if (*(info->arg) != '\n')
 		{
-			perror(av[0]);
-			for (i = 0; av[i]; i++)
-				free(av[i]);
-			free(av);
-			free(buffer);
-			exit(127);
+			info->status = 127;
+			print_error(info, "not found\n");
 		}
 	}
-	wait(&status);
-	if (WIFEXITED(status))
+}
+
+/**
+ * fork_cmd - forks a an exec thread to run cmd
+ * @info: the parameter & return info struct
+ *
+ * Return: void
+ */
+void fork_cmd(info_t *info)
+{
+	pid_t child_pid;
+
+	child_pid = fork();
+	if (child_pid == -1)
 	{
-		exitstatus = WEXITSTATUS(status);
+		perror("Error:");
+		return;
 	}
-	for (i = 0; av[i]; i++)
-		free(av[i]);
-	free(av);
-	free(buffer);
-	return (exitstatus);
+	if (child_pid == 0)
+	{
+		if (execve(info->path, info->argv, get_environ(info)) == -1)
+		{
+			let_info(info, 1);
+			if (errno == EACCES)
+				exit(126);
+			exit(1);
+		}
+	}
+	else
+	{
+		wait(&(info->status));
+		if (WIFEXITED(info->status))
+		{
+			info->status = WEXITSTATUS(info->status);
+			if (info->status == 126)
+				print_error(info, "Permission denied\n");
+		}
+	}
 }
