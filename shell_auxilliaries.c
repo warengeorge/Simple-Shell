@@ -1,94 +1,71 @@
 #include "shell.h"
 /**
- * check_delim - Checks If A Character Match Any Char *
- * @c: Character To Check
- * @str: String To Check
- * Return: 1 Succes, 0 Failed
+ * _getenv - gets PATH member from environ
+ * @name: pointer to PATH string
+ *
+ * Return: pointer to PATH member string or NULL if not found
  */
-unsigned int check_delim(char c, const char *str)
+char *_getenv(const char *name)
 {
-	unsigned int i;
+	int i, result;
 
-	for (i = 0; str[i] != '\0'; i++)
+	for (i = 0; environ[i]; i++)
+	{
+		result = _PATHstrcmp(name, environ[i]);
+		if (result == 0)
 		{
-			if (c == str[i])
-	return (1);
+			return (environ[i]);
 		}
+	}
+	return (NULL);
+}
+/**
+ * _env - prints the environ
+ *
+ * Return: 0 on success
+ */
+int _env(void)
+{
+	int i;
+
+	for (i = 0; environ[i]; i++)
+		_puts(environ[i]);
 	return (0);
 }
-
 /**
- * _strtok - Token A String Into Token (strtrok)
- * @str: String
- * @delim: Delimiter
- * Return: Pointer To The Next Token Or NULL
+ * _puts - prints a string
+ * @str: string to print
  */
-char *_strtok(char *str, const char *delim)
+void _puts(char *str)
 {
-	static char *ts;
-	static char *nt;
+	int c;
+
+	for (c = 0; str[c] != '\0'; c++)
+		_putchar(str[c]);
+	_putchar('\n');
+}
+/**
+ * _putchar - prints a character
+ * @c: character to print
+ *
+ * Return: return value of write syscall
+ */
+int _putchar(char c)
+{
+	return (write(1, &c, 1));
+}
+/**
+ * _memset - fills memory with a constant byte
+ * @s: character array to fill
+ * @b: constant byte to fill with
+ * @n: how many bytes to fill
+ * Return: the pointer to the char array
+ */
+char *_memset(char *s, char b, unsigned int n)
+{
 	unsigned int i;
 
-	if (str != NULL)
-		nt = str;
-	ts = nt;
-	if (ts == NULL)
-		return (NULL);
-	for (i = 0; ts[i] != '\0'; i++)
-		{
-			if (check_delim(ts[i], delim) == 0)
-	break;
-		}
-	if (nt[i] == '\0' || nt[i] == '#')
-		{
-			nt = NULL;
-			return (NULL);
-		}
-	ts = nt + i;
-	nt = ts;
-	for (i = 0; nt[i] != '\0'; i++)
-		{
-			if (check_delim(nt[i], delim) == 1)
-	break;
-		}
-	if (nt[i] == '\0')
-		nt = NULL;
-	else
-		{
-			nt[i] = '\0';
-			nt = nt + i + 1;
-			if (*nt == '\0')
-	nt = NULL;
-		}
-	return (ts);
-}
-int _execute(char * * args) {
-	pid_t iid;
-	int stat;
-
-	if (strcmp(args[0], "exit") == 0)
-		{
-			return _exit();
-		}
-iid = fork();
-
-	if (iid == 0) {
-		if (execvp(args[0], args) < 0)
-			printf("dash: command not found: %s\n", args[0]);
-		exit(EXIT_FAILURE);
-
-	} else if (iid < 0)
-		printf(TIME "Error forking"
-		 STARTAGAIN "\n");
-	else {
-		waitpid(iid, & stat, WUNTRACED);
-	}
-
-	return 1;
-}
-#include "shell.h"
-
-int _exit(char **args)
-{
-	return 0;
+	for (i = 0; i < n; i++)
+		s[i] = b;
+	return (s);
 }
