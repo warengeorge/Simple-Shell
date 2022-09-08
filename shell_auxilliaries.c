@@ -1,95 +1,88 @@
 #include "shell.h"
-
 /**
- * printPrompt - Prints the prompt
- * @prompt: The prompt to print
- *
- * Return: none
+ * check_delim - Checks If A Character Match Any Char *
+ * @c: Character To Check
+ * @str: String To Check
+ * Return: 1 Succes, 0 Failed
  */
-void printPrompt(char *prompt)
+unsigned int check_delim(char c, const char *str)
 {
-	unsigned int length;
+	unsigned int i;
 
-	length = _strlen(prompt);
-	write(1, prompt, (size_t)length);
+	for (i = 0; str[i] != '\0'; i++)
+		{
+			if (c == str[i])
+	return (1);
+		}
+	return (0);
 }
 
 /**
- * initStruct - initial general struct
- * @env: environment data from shell
- * Return: initialized general struct
+ * _strtok - Token A String Into Token (strtrok)
+ * @str: String
+ * @delim: Delimiter
+ * Return: Pointer To The Next Token Or NULL
  */
-general_t *initStruct(char **env)
+char *_strtok(char *str, const char *delim)
 {
-	general_t *universal;
-	int i = 0;
-	unsigned int str_len;
-	char **new_env;
+	static char *ts;
+	static char *nt;
+	unsigned int i;
 
-	universal = malloc(sizeof(general_t));
-	if (universal == NULL)
-	{
-		perror("main struct failed");
+	if (str != NULL)
+		nt = str;
+	ts = nt;
+	if (ts == NULL)
 		return (NULL);
-	}
-	new_env = malloc(ENVSIZE * sizeof(char *));
-	if (new_env == NULL)
-	{
-		perror("Environment malloc failed");
-		exit(12);
-	}
-	addMemEnv(universal, new_env);
-	while (env[i])
-	{
-		str_len = _strlen(env[i]);
-		new_env[i] = malloc(++str_len * sizeof(char));
-		if (new_env[i] == NULL)
+	for (i = 0; ts[i] != '\0'; i++)
 		{
-			if (i != 0)
-				i--;
-			for (; i >= 0; i--)
-				free(new_env[i]);
-			free(new_env);
-			exit(12);
+			if (check_delim(ts[i], delim) == 0)
+	break;
 		}
-		_strcpy(new_env[i], env[i]);
-		i++;
-	}
-	universal->nCommands = 0;
-	return (universal);
+	if (nt[i] == '\0' || nt[i] == '#')
+		{
+			nt = NULL;
+			return (NULL);
+		}
+	ts = nt + i;
+	nt = ts;
+	for (i = 0; nt[i] != '\0'; i++)
+		{
+			if (check_delim(nt[i], delim) == 1)
+	break;
+		}
+	if (nt[i] == '\0')
+		nt = NULL;
+	else
+		{
+			nt[i] = '\0';
+			nt = nt + i + 1;
+			if (*nt == '\0')
+	nt = NULL;
+		}
+	return (ts);
 }
+int _execute(char * * args) {
+	pid_t iid;
+	int stat;
 
-/**
- * _itoa - converts unsigned integer to alphanumeric
- * @num: number to convert to string
- * Return: text of number
- */
-char *_itoa(unsigned int num)
-{
-	int divisor = 1, d, t, index = 0, highestorderdigit = 0;
-	char *digits = NULL;
-
-	if (num <= 0)
-		return ("0");
-	else if (num > 5000)
-		return ("5000 is max");
-
-	digits = malloc(5 * sizeof(char));
-	if (digits == NULL)
-		return (NULL);
-
-	divisor = 1000;
-	for (t = 0; t < 4; t++)
-	{
-		d = (num / divisor) % 10;
-		if ((d != 0) && !highestorderdigit)
-			highestorderdigit = 1;
-		if (highestorderdigit)
+	if (strcmp(args[0], "exit") == 0)
 		{
-			digits[index++] = d + '0';
+			return _exit();
 		}
-		divisor = divisor / 10;
+iid = fork();
+
+	if (iid == 0) {
+		if (execvp(args[0], args) < 0)
+			printf("dash: command not found: %s\n", args[0]);
+		exit(EXIT_FAILURE);
+
+	} else if (iid < 0)
+		printf(TIME "Error forking"
+		 STARTAGAIN "\n");
+	else {
+		waitpid(iid, & stat, WUNTRACED);
 	}
-	digits[index] = '\0';
-	return (digits);
+
+	return 1;
 }
