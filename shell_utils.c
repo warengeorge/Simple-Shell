@@ -1,105 +1,174 @@
 #include "shell.h"
-
 /**
- * getUserInput - gets user input from shell
- * @buffer: where user's input is stored
- * @length: length of user's input
- * @genHead: general struct
- * Return: pointer to user's input line
+ * prompt - writes a prompt
+ *
+ * Return: 0 on sucess
  */
-char *getUserInput(char *buffer, size_t *length, general_t *genHead)
+int prompt(void)
 {
-	ssize_t chars_read;
+	char *prompt = "$ ";
+	ssize_t writecount = 0;
 
-	chars_read = getline(&buffer, length, stdin);
-	if ((chars_read == -1) && (!buffer))
+	if (isatty(STDIN_FILENO) == 1)
 	{
-		perror("Invalid argument");
-		exit(EXIT_FAILURE);
+		writecount = write(STDOUT_FILENO, prompt, 2);
+		if (writecount == -1)
+			exit(0);
 	}
-	else if (chars_read == -1 && buffer)
-	{
-		buffer[0] = '\n';
-		write(1, buffer, 1);
-		freeEnv(genHead);
-		freeBuiltins(genHead);
-		free(genHead);
-		free(buffer);
-		exit(0);
-	}
-	addMemIBuffer(genHead, buffer);
-	return (buffer);
-}
-
-/**
- * parseBuffer - parse user's input
- * @buffer: user's raw input
- * @genHead: main struct for vars
- * Return: tokenized string of user's input
- */
-char **parseBuffer(char *buffer, general_t *genHead)
-{
-	char *delim = " \t\r\n";
-	char **tokens = tokenize(buffer, delim, genHead);
-
-	return (tokens);
-}
-
-/**
- * correctAbsPath - process command if correct info was entered by user
- * @token: raw user input
- * Return: Always 0.
- */
-size_t correctAbsPath(char *token)
-{
-	struct stat st;
-
-	if (stat(token, &st) == 0)
-		return (1);
 	return (0);
 }
-
 /**
- * tokenize - tokenize raw user's data
- * @str: user's raw data
- * @delim: delimiters for user's raw input
- * @genHead: general struct
- * Return: string of tokens from users input
+ * _read - reads stdin and stores it in a buffer
+ *
+ * Return: a pointer to the buffer
  */
-char **tokenize(char *str, char *delim, general_t *genHead)
+char *_read(void)
 {
-	char *current;
-	char **tokens;
+	ssize_t readcount = 0;
+	size_t n = 0;
+	char *buffer = NULL;
 	int i = 0;
 
-	current = strtok(str, delim);
-	tokens = malloc(NUM_TOKENS * sizeof(char *));
-	if (tokens == NULL)
-		return (NULL);
-	addMemBufferTokens(genHead, tokens);
-	for (i = 0; i < NUM_TOKENS; i++)
+	readcount = getline(&buffer, &n, stdin);
+	if (readcount == -1)
 	{
-		tokens[i] = malloc(100 * sizeof(char));
-		if (tokens[i] == NULL)
+		free(buffer);
+		if (isatty(STDIN_FILENO) != 0)
+			write(STDOUT_FILENO, "\n", 1);
+		exit(0);
+	}
+	if (buffer[readcount - 1] == '\n' || buffer[readcount - 1] == '\t')
+		buffer[readcount - 1] = '\0';
+	for (i = 0; buffer[i]; i++)
+	{
+		if (buffer[i] == '#' && buffer[i - 1] == ' ')
 		{
-			if (i != 0)
-				i -= 1;
-			for (; i >= 0; i--)
-				free(tokens[i]);
-			free(tokens);
-			return (NULL);
+			buffer[i] = '\0';
+			break;
 		}
 	}
-	i = 0;
-	while (current)
+	return (buffer);
+}
+/**
+ * _fullpathbuffer - finds the string to call execve on
+ * @av: pointer to array of user of strings
+ * @PATH: pointer to PATH string
+ * @copy: pointer to copy of PATH string
+ *
+ * Return: a pointer to string to call execve on
+ */
+char *_fullpathbuffer(char **av, char *PATH, char *copy)
+{
+	char *tok, *fullpathbuffer = NULL, *concatstr = NULL;
+	static char tmp[256];
+	int PATHcount = 0, fullpathflag = 0, /*len = 0,*/ z = 0, toklen = 0;
+	struct stat h;
+
+	copy = NULL;
+	copy = _strdup(PATH);
+	PATHcount = _splitPATH(copy);
+	tok = strtok(copy, ": =");
+	while (tok != NULL)
 	{
-		if (i > 0)
-			current = strtok(NULL, delim);
-		free(tokens[i]);
-		tokens[i] = current;
-		i++;
+		concatstr = _concat(tmp, av, tok);
+		if (stat(concatstr, &h) == 0)
+		{
+			fullpathbuffer = concatstr;
+			fullpathflag = 1;
+			break;
+		}
+		if (z < PATHcount - 2)
+		{
+			toklen = _strlen(tok);
+			if (tok[toklen + 1] == ':')
+			{
+				if (stat(av[0], &h) == 0)
+				{
+					fullpathbuffer = av[0];
+					fullpathflag = 1;
+					break;
+				}
+			}
+		}
+		z++;
+		tok = strtok(NULL, ":");
 	}
-	for (; i < NUM_TOKENS; i++)
-		free(tokens[i]);
-	return (tokens);
+	if (fullpathflag == 0)
+		fullpathbuffer = av[0];
+	free(copy);
+	return (fullpathbuffer);
+}
+/**
+ * checkbuiltins - check if first user string is a built-in
+ * @av: pointer to array of user of strings
+ * @buffer: pointer to user string
+ * @exitstatus: exit status of execve
+ * Return: 1 if user string is equal to env or 0 otherwise
+ */
+int checkbuiltins(char **av, char *buffer, int exitstatus)
+{
+	int i;
+
+	if (_strcmp(av[0], "env") == 0)
+	{
+		_env();
+		for (i = 0; av[i]; i++)
+			free(av[i]);
+		free(av);
+		free(buffer);
+		return (1);
+	}
+	else if (_strcmp(av[0], "exit") == 0)
+	{
+		for (i = 0; av[i]; i++)
+			free(av[i]);
+		free(av);
+		free(buffer);
+		exit(exitstatus);
+	}
+	else
+		return (0);
+}
+/**
+ * _forkprocess - create child process to execute based on user input
+ * @av: pointer to array of user of strings
+ * @buffer: pointer to user string
+ * @fullpathbuffer: pointer to user input
+ *
+ * Return: 0 on success
+ */
+int _forkprocess(char **av, char *buffer, char *fullpathbuffer)
+{
+	int i, status, result, exitstatus = 0;
+	pid_t pid;
+
+	pid = fork();
+	if (pid == -1)
+	{
+		perror("Error");
+		exit(1);
+	}
+	if (pid == 0)
+	{
+		result = execve(fullpathbuffer, av, environ);
+		if (result == -1)
+		{
+			perror(av[0]);
+			for (i = 0; av[i]; i++)
+				free(av[i]);
+			free(av);
+			free(buffer);
+			exit(127);
+		}
+	}
+	wait(&status);
+	if (WIFEXITED(status))
+	{
+		exitstatus = WEXITSTATUS(status);
+	}
+	for (i = 0; av[i]; i++)
+		free(av[i]);
+	free(av);
+	free(buffer);
+	return (exitstatus);
 }
