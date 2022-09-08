@@ -1,34 +1,43 @@
 #include "shell.h"
 
 /**
- * main - main function for shell.
- * Return: 0 on success or error on code.
+ * main - intepretes inputs ands arguments
+ * @argc: number of arguments sent to main program
+ * @argv: string of input from users
+ * @env: shell environment variables
+ * Return: Always 0
  */
-
-int main(int argc __attribute__((unused)), char *argv[])
+int main(int argc, char **argv, char **env)
 {
-	char cmd[100], command[100], *parameters[20];
-	//char *envp[] = {(char *) "PATH=/bin", 0};
+	char *buf;
+	ssize_t charsRead;
+	general_t *genHead = NULL;
 
-	while (1)
+	argc = argc;
+	argv = argv;
+
+	genHead = initStruct(env);
+	initBuiltins(genHead);
+
+	if (isatty(STDIN_FILENO))
 	{
-		prompt_user();
-		read_command(command, parameters);
-
-		if (fork() != 0)
-			wait(NULL);
+		genHead->isInteractive = 1;
+		interactiveShell(genHead);
+	}
+	else
+	{
+		buf = malloc(1024 * sizeof(char));
+		if (buf == NULL)
+			exit(12);
+		addMemNIBuffer(genHead, buf);
+		charsRead = read(0, buf, 1024);
+		if (charsRead == -1)
+			exit(EXIT_FAILURE);
 		else
 		{
-			strcpy(cmd, "/bin/");
-			strcat(cmd, command);
-			if (execve(cmd, parameters, NULL) == -1)
-				perror(argv[0]);
-		}
-		if (strcmp(command, "exit") == 0)
-		{
-			break;
+			genHead->isInteractive = 0;
+			nonInteractiveShell(buf, genHead);
 		}
 	}
-
 	return (0);
 }
