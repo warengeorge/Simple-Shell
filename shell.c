@@ -16,7 +16,7 @@ int hsh(info_t *info, char **av)
 	{
 		remove_info(info);
 		if (active(info))
-			_puts("Ogu_Majam===>$ ");
+			_puts("George-Peda=>$ ");
 		_eputchar(BUF_FLUSH);
 		r = get_input(info);
 		if (r != -1)
